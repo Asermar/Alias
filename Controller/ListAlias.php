@@ -1,0 +1,54 @@
+<?php
+/**
+ * Copyright (C) 2026 Alexis Serafin <alexis@okodex.com>
+ */
+
+namespace FacturaScripts\Plugins\Alias\Controller;
+
+use FacturaScripts\Core\Lib\ExtendedController\ListController;
+
+/**
+ * Listado de alias (con filtro por tipo) y de tipos de alias.
+ *
+ * @author Alexis Serafin <alexis@okodex.com>
+ */
+class ListAlias extends ListController
+{
+    public function getPageData(): array
+    {
+        $data = parent::getPageData();
+        $data['menu'] = 'admin';
+        $data['title'] = 'aliases';
+        $data['icon'] = 'fa-solid fa-tags';
+        return $data;
+    }
+
+    protected function createViews()
+    {
+        $this->createViewsAlias();
+        $this->createViewsAliasType();
+    }
+
+    protected function createViewsAlias(string $viewName = 'ListAlias'): void
+    {
+        $this->addView($viewName, 'Alias', 'aliases', 'fa-solid fa-tags')
+            ->addOrderBy(['aliastype'], 'alias-type')
+            ->addOrderBy(['alias'], 'alias')
+            ->addOrderBy(['cod'], 'code')
+            ->addOrderBy(['id'], 'id', 2)
+            ->addSearchFields(['alias', 'cod']);
+
+        // filtro por tipo de alias
+        $types = $this->codeModel->all('aliastypes', 'aliastype', 'aliastype');
+        $this->listView($viewName)
+            ->addFilterSelect('aliastype', 'alias-type', 'aliastype', $types)
+            ->addFilterCheckbox('favorite', 'favorite', 'favorite');
+    }
+
+    protected function createViewsAliasType(string $viewName = 'ListAliasType'): void
+    {
+        $this->addView($viewName, 'AliasType', 'alias-types', 'fa-solid fa-tag')
+            ->addOrderBy(['aliastype'], 'alias-type', 1)
+            ->addSearchFields(['aliastype', 'description']);
+    }
+}

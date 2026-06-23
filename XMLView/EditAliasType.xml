@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<view>
+    <columns>
+        <group name="data" numcolumns="12">
+            <column name="alias-type" order="100" numcolumns="4">
+                <widget type="text" fieldname="aliastype" maxlength="30" required="true"/>
+            </column>
+            <column name="description" order="110" numcolumns="8">
+                <widget type="text" fieldname="description" maxlength="100"/>
+            </column>
+        </group>
+        <group name="log" numcolumns="12">
+            <column name="creation-date" order="100">
+                <widget type="datetime" fieldname="creationdate" readonly="true"/>
+            </column>
+            <column name="user" order="110">
+                <widget type="text" fieldname="nick" maxlength="50" readonly="true"/>
+            </column>
+            <column name="last-update" order="120">
+                <widget type="datetime" fieldname="lastupdate" readonly="true"/>
+            </column>
+            <column name="last-user" order="130">
+                <widget type="text" fieldname="lastnick" maxlength="50" readonly="true"/>
+            </column>
+        </group>
+    </columns>
+</view>

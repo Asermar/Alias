@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<view>
+    <columns>
+        <group name="data" numcolumns="12">
+            <column name="alias-type" order="100" numcolumns="3">
+                <widget type="select" fieldname="aliastype" required="true">
+                    <values source="aliastypes" fieldcode="aliastype" fieldtitle="aliastype"/>
+                </widget>
+            </column>
+            <column name="code" order="110" numcolumns="3">
+                <widget type="text" fieldname="cod" maxlength="50" required="true"/>
+            </column>
+            <column name="alias" order="120" numcolumns="4">
+                <widget type="text" fieldname="alias" maxlength="50" required="true"/>
+            </column>
+            <column name="favorite" order="130" numcolumns="2" display="center">
+                <widget type="checkbox" fieldname="favorite"/>
+            </column>
+        </group>
+        <group name="log" numcolumns="12">
+            <column name="creation-date" order="100">
+                <widget type="datetime" fieldname="creationdate" readonly="true"/>
+            </column>
+            <column name="user" order="110">
+                <widget type="text" fieldname="nick" maxlength="50" readonly="true"/>
+            </column>
+            <column name="last-update" order="120">
+                <widget type="datetime" fieldname="lastupdate" readonly="true"/>
+            </column>
+            <column name="last-user" order="130">
+                <widget type="text" fieldname="lastnick" maxlength="50" readonly="true"/>
+            </column>
+        </group>
+    </columns>
+</view>
