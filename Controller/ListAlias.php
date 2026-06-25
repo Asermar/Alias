@@ -23,7 +23,7 @@ class ListAlias extends ListController
         return $data;
     }
 
-    protected function createViews()
+    protected function createViews(): void
     {
         $this->createViewsAlias();
         $this->createViewsAliasType();
@@ -49,6 +49,7 @@ class ListAlias extends ListController
     {
         $this->addView($viewName, 'AliasType', 'alias-types', 'fa-solid fa-tag')
             ->addOrderBy(['aliastype'], 'alias-type', 1)
-            ->addSearchFields(['aliastype', 'description']);
+            ->addSearchFields(['aliastype', 'description'])
+            ->setSettings('btnNew', false);
     }
 }

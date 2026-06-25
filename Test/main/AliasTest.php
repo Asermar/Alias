@@ -9,6 +9,8 @@ use FacturaScripts\Core\Base\MiniLog;
 use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\Alias;
 use FacturaScripts\Dinamic\Model\AliasType;
+use FacturaScripts\Plugins\Alias\Controller\EditAliasType;
+use FacturaScripts\Plugins\Alias\Controller\ListAlias;
 use FacturaScripts\Test\Traits\LogErrorsTrait;
 use PHPUnit\Framework\TestCase;
 
@@ -21,14 +23,11 @@ final class AliasTest extends TestCase
 
     const TYPE = 'unittest';
 
-    protected function setUp(): void
+    public static function tearDownAfterClass(): void
     {
-        // tipo de alias usado por las pruebas (FK alias.aliastype -> aliastypes)
-        $type = new AliasType();
-        if (false === $type->loadWhere([Where::eq('aliastype', self::TYPE)])) {
-            $type->aliastype = self::TYPE;
-            $type->description = 'Unit test';
-            $type->save();
+        // limpiamos el tipo de alias de pruebas
+        foreach (AliasType::all([Where::eq('aliastype', self::TYPE)]) as $type) {
+            $type->delete();
         }
     }
 
@@ -54,25 +53,36 @@ final class AliasTest extends TestCase
         $this->assertTrue($alias->delete());
     }
 
-    public function testUniqueAliasPerType(): void
+    public function testEditAliasTypeHasNoNewButton(): void
     {
-        $a1 = new Alias();
-        $a1->aliastype = self::TYPE;
-        $a1->cod = 'C1';
-        $a1->alias = 'DUP';
-        $this->assertTrue($a1->save());
+        $controller = new EditAliasType('EditAliasType');
+        $method = new \ReflectionMethod($controller, 'createViews');
+        $method->setAccessible(true);
+        $method->invoke($controller);
 
-        // mismo (aliastype, alias) -> debe rechazarse por el UNIQUE
-        $a2 = new Alias();
-        $a2->aliastype = self::TYPE;
-        $a2->cod = 'C2';
-        $a2->alias = 'DUP';
-        $this->assertFalse($a2->save(), 'el alias duplicado no debería guardarse');
+        $this->assertArrayHasKey('EditAliasType', $controller->views);
+        $this->assertFalse(
+            $controller->views['EditAliasType']->settings['btnNew'],
+            'la vista de edición de tipo no debe permitir crear nuevos'
+        );
+    }
 
-        // la violación de UNIQUE registra un error en el log; lo limpiamos
-        MiniLog::clear();
+    public function testListAliasTypeHasNoNewButton(): void
+    {
+        $controller = new ListAlias('ListAlias');
+        $method = new \ReflectionMethod($controller, 'createViews');
+        $method->setAccessible(true);
+        $method->invoke($controller);
 
-        $this->assertTrue($a1->delete());
+        // la vista de tipos NO permite crear
+        $this->assertArrayHasKey('ListAliasType', $controller->views);
+        $this->assertFalse(
+            $controller->views['ListAliasType']->settings['btnNew'],
+            'la vista de tipos de alias no debe permitir crear nuevos'
+        );
+
+        // la vista de alias SÍ sigue permitiendo crear (no se ve afectada)
+        $this->assertTrue($controller->views['ListAlias']->settings['btnNew']);
     }
 
     public function testOnlyOneFavoritePerEntity(): void
@@ -102,11 +112,35 @@ final class AliasTest extends TestCase
         $this->assertTrue($a2->delete());
     }
 
-    public static function tearDownAfterClass(): void
+    public function testUniqueAliasPerType(): void
     {
-        // limpiamos el tipo de alias de pruebas
-        foreach (AliasType::all([Where::eq('aliastype', self::TYPE)]) as $type) {
-            $type->delete();
+        $a1 = new Alias();
+        $a1->aliastype = self::TYPE;
+        $a1->cod = 'C1';
+        $a1->alias = 'DUP';
+        $this->assertTrue($a1->save());
+
+        // mismo (aliastype, alias) -> debe rechazarse por el UNIQUE
+        $a2 = new Alias();
+        $a2->aliastype = self::TYPE;
+        $a2->cod = 'C2';
+        $a2->alias = 'DUP';
+        $this->assertFalse($a2->save(), 'el alias duplicado no debería guardarse');
+
+        // la violación de UNIQUE registra un error en el log; lo limpiamos
+        MiniLog::clear();
+
+        $this->assertTrue($a1->delete());
+    }
+
+    protected function setUp(): void
+    {
+        // tipo de alias usado por las pruebas (FK alias.aliastype -> aliastypes)
+        $type = new AliasType();
+        if (false === $type->loadWhere([Where::eq('aliastype', self::TYPE)])) {
+            $type->aliastype = self::TYPE;
+            $type->description = 'Unit test';
+            $type->save();
         }
     }
 

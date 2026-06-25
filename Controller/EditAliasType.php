@@ -25,4 +25,13 @@ class EditAliasType extends EditController
         $data['icon'] = 'fa-solid fa-tag';
         return $data;
     }
+
+    protected function createViews(): void
+    {
+        parent::createViews();
+
+        // los tipos de alias solo los crea el plugin que ofrece operativa para
+        // ellos; desde la administración no se permite crearlos a mano.
+        $this->setSettings('EditAliasType', 'btnNew', false);
+    }
 }
