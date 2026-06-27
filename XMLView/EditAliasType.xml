@@ -10,6 +10,9 @@
             </column>
         </group>
         <group name="log" numcolumns="12">
+            <column name="plugin" order="90">
+                <widget type="text" fieldname="plugin" maxlength="50" readonly="true"/>
+            </column>
             <column name="creation-date" order="100">
                 <widget type="datetime" fieldname="creationdate" readonly="true"/>
             </column>

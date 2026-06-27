@@ -5,10 +5,15 @@
             <widget type="text" fieldname="id"/>
         </column>
         <column name="alias-type" order="110">
-            <widget type="text" fieldname="aliastype"/>
+            <widget type="select" fieldname="aliastype" translate="true">
+                <values source="aliastypes" fieldcode="aliastype" fieldtitle="aliastype"/>
+            </widget>
         </column>
         <column name="description" order="120">
             <widget type="text" fieldname="description"/>
+        </column>
+        <column name="plugin" order="130">
+            <widget type="text" fieldname="plugin"/>
         </column>
     </columns>
 </view>

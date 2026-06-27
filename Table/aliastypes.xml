@@ -15,6 +15,10 @@
         <type>character varying(100)</type>
     </column>
     <column>
+        <name>plugin</name>
+        <type>character varying(50)</type>
+    </column>
+    <column>
         <name>creationdate</name>
         <type>timestamp</type>
         <null>NO</null>
