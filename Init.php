@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2026 Alexis Serafin <alexis@okodex.com>
+ * Copyright (C) 2026 Oko Digital Experts, S.L.L. (Okodex)
  */
 
 namespace FacturaScripts\Plugins\Alias;
@@ -8,7 +8,7 @@ namespace FacturaScripts\Plugins\Alias;
 use FacturaScripts\Core\Template\InitClass;
 
 /**
- * @author Alexis Serafin <alexis@okodex.com>
+ * @author Alexis Serafín <alexis@okodex.com>
  */
 class Init extends InitClass
 {

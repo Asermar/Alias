@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2026 Alexis Serafin <alexis@okodex.com>
+ * Copyright (C) 2026 Oko Digital Experts, S.L.L. (Okodex)
  */
 
 namespace FacturaScripts\Plugins\Alias\Controller;
@@ -8,7 +8,7 @@ namespace FacturaScripts\Plugins\Alias\Controller;
 use FacturaScripts\Core\Lib\ExtendedController\EditController;
 
 /**
- * @author Alexis Serafin <alexis@okodex.com>
+ * @author Alexis Serafín <alexis@okodex.com>
  */
 class EditAliasType extends EditController
 {

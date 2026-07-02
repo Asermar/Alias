@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2026 Alexis Serafin <alexis@okodex.com>
+ * Copyright (C) 2026 Oko Digital Experts, S.L.L. (Okodex)
  */
 
 namespace FacturaScripts\Plugins\Alias\Model;
@@ -14,7 +14,7 @@ use FacturaScripts\Core\Where;
 /**
  * Catálogo de tipos de alias.
  *
- * @author Alexis Serafin <alexis@okodex.com>
+ * @author Alexis Serafín <alexis@okodex.com>
  */
 class AliasType extends ModelClass
 {

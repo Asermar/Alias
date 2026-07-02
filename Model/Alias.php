@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2026 Alexis Serafin <alexis@okodex.com>
+ * Copyright (C) 2026 Oko Digital Experts, S.L.L. (Okodex)
  */
 
 namespace FacturaScripts\Plugins\Alias\Model;
@@ -16,7 +16,7 @@ use FacturaScripts\Dinamic\Model\AliasType;
  * Alias genérico y polimórfico: asocia un 'alias' a una entidad identificada
  * por (aliastype, cod). El tipo se valida contra el catálogo aliastypes.
  *
- * @author Alexis Serafin <alexis@okodex.com>
+ * @author Alexis Serafín <alexis@okodex.com>
  */
 class Alias extends ModelClass
 {

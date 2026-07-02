@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright (C) 2026 Alexis Serafin <alexis@okodex.com>
+ * Copyright (C) 2026 Oko Digital Experts, S.L.L. (Okodex)
  */
 
 namespace FacturaScripts\Plugins\Alias\Controller;
@@ -11,7 +11,7 @@ use FacturaScripts\Core\Tools;
 /**
  * Listado de alias (con filtro por tipo) y de tipos de alias.
  *
- * @author Alexis Serafin <alexis@okodex.com>
+ * @author Alexis Serafín <alexis@okodex.com>
  */
 class ListAlias extends ListController
 {
