@@ -16,6 +16,16 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * @author Alexis Serafín <alexis@okodex.com>
+ *
+ * @description
+ * ## Alias polimórficos
+ *
+ * Valida el modelo base `Alias` y sus reglas:
+ *
+ * - Alta/baja de tipos de alias (`AliasType`) y de alias.
+ * - **Un solo favorito** por entidad (`aliastype` + `cod`).
+ * - Alias **único** por tipo (restricción `UNIQUE`).
+ * - Las vistas de *tipos* de alias no permiten crear registros nuevos.
  */
 final class AliasTest extends TestCase
 {
@@ -31,6 +41,9 @@ final class AliasTest extends TestCase
         }
     }
 
+    /**
+     * @description Alta, existencia y borrado de un **tipo de alias** (`AliasType`).
+     */
     public function testAliasType(): void
     {
         $type = new AliasType();
@@ -41,6 +54,9 @@ final class AliasTest extends TestCase
         $this->assertTrue($type->delete());
     }
 
+    /**
+     * @description Crea y borra un alias; `favorite` debe ser **false** por defecto.
+     */
     public function testCreateAndDeleteAlias(): void
     {
         $alias = new Alias();
@@ -53,6 +69,9 @@ final class AliasTest extends TestCase
         $this->assertTrue($alias->delete());
     }
 
+    /**
+     * @description La vista `EditAliasType` **no** permite crear nuevos (`btnNew` desactivado).
+     */
     public function testEditAliasTypeHasNoNewButton(): void
     {
         $controller = new EditAliasType('EditAliasType');
@@ -67,6 +86,9 @@ final class AliasTest extends TestCase
         );
     }
 
+    /**
+     * @description En `ListAlias`, la pestaña de *tipos* no permite crear; la de *alias* sí.
+     */
     public function testListAliasTypeHasNoNewButton(): void
     {
         $controller = new ListAlias('ListAlias');
@@ -85,6 +107,9 @@ final class AliasTest extends TestCase
         $this->assertTrue($controller->views['ListAlias']->settings['btnNew']);
     }
 
+    /**
+     * @description Al marcar un segundo favorito de la misma entidad, el anterior se **desmarca**.
+     */
     public function testOnlyOneFavoritePerEntity(): void
     {
         $a1 = new Alias();
@@ -112,6 +137,9 @@ final class AliasTest extends TestCase
         $this->assertTrue($a2->delete());
     }
 
+    /**
+     * @description Dos alias con el mismo `(aliastype, alias)` se rechazan por la restricción `UNIQUE`.
+     */
     public function testUniqueAliasPerType(): void
     {
         $a1 = new Alias();
