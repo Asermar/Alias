@@ -55,6 +55,28 @@ final class AliasTest extends TestCase
     }
 
     /**
+     * @description Un alias de **100 caracteres** se guarda y se relee **sin recortar**.
+     */
+    public function testAliasOf100CharsIsNotTruncated(): void
+    {
+        $largo = str_repeat('A', 100);
+
+        $alias = new Alias();
+        $alias->aliastype = self::TYPE;
+        $alias->cod = 'LARGO';
+        $alias->alias = $largo;
+        $this->assertTrue($alias->save(), 'no se pudo guardar un alias de 100 caracteres');
+
+        // releemos de la base de datos: es ahí donde se vería el recorte
+        $reload = new Alias();
+        $this->assertTrue($reload->load($alias->id));
+        $this->assertSame(100, mb_strlen($reload->alias), 'el alias se ha recortado al guardarlo');
+        $this->assertSame($largo, $reload->alias);
+
+        $this->assertTrue($alias->delete());
+    }
+
+    /**
      * @description Alta, existencia y borrado de un **tipo de alias** (`AliasType`).
      */
     public function testAliasType(): void
