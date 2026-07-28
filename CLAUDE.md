@@ -33,8 +33,12 @@ clase; solo conoce `(aliastype, cod, alias)`.
 
 ### Columnas clave (`Table/alias.xml`)
 
-- `id` serial PK; `alias` varchar(50) NOT NULL (el texto del alias); `aliastype` + `cod` (el par
+- `id` serial PK; `alias` **varchar(100)** NOT NULL (el texto del alias); `aliastype` + `cod` (el par
   polimórfico, ambos NOT NULL); `favorite` boolean NOT NULL default false.
+  - `alias` era varchar(50) hasta la v1.01. Se amplió porque el volcado de POI de la BD de reservas
+    trae alias de hasta 56 caracteres, y recortarlos puede provocar colisiones nuevas contra el
+    UNIQUE. `cod` sigue en varchar(50) (guarda identificadores) y `nick`/`lastnick` también, porque
+    son FK a `users.nick`.
 - **Único `(aliastype, alias)`** (`alias_aliastype_alias_uniq`): dentro de un tipo no se repite el
   mismo texto de alias. **Ojo**: el UNIQUE es por *tipo*, no por *entidad* — dos entidades distintas
   del mismo tipo no pueden compartir texto de alias.
@@ -165,6 +169,17 @@ tipo de pruebas `unittest` creado en `setUp` y borrado en `tearDownAfterClass`.
   sobre duplicados.
 - **Tipos solo por código**: no crear `aliastypes` desde la UI; siempre `AliasType::ensure()` en el
   `update()` del plugin responsable.
+- **⚠ Cambiar la longitud de `alias` trunca en los dos sentidos.** `DbUpdater` **sí** sincroniza el
+  tipo de columna (`Core/DbUpdater.php:297-301` → `sqlAlterModifyColumn`, motivo
+  `change-column-type`), y lo hace de forma **bidireccional**: desplegar una rama cuyo
+  `Table/alias.xml` diga `varchar(50)` **contra una BD que ya tiene `varchar(100)`** emite un
+  `MODIFY ... varchar(50)` y **MySQL trunca los alias largos sin avisar**. Es pérdida de datos
+  silenciosa. Muerde al hacer `git checkout` a una rama vieja y desplegar sin reparar en que la BD
+  no ha cambiado. Al alternar entre ramas con distinta longitud, comprobar antes a qué BD apunta
+  `config.php`.
+- **`maxlength` del widget va en cada satélite**: al cambiar la longitud de la columna hay que subir
+  también el `maxlength` de `fieldname="alias"` en las XMLView de *todos* los satélites (hoy 6
+  ficheros en 4 plugins), o el formulario cortará antes que la base de datos.
 
 ## Otras carpetas
 
