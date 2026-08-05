@@ -11,7 +11,7 @@
                 <widget type="text" fieldname="cod" maxlength="50" required="true"/>
             </column>
             <column name="alias" order="120" numcolumns="4">
-                <widget type="text" fieldname="alias" maxlength="50" required="true"/>
+                <widget type="text" fieldname="alias" maxlength="100" required="true"/>
             </column>
             <column name="favorite" order="130" numcolumns="2" display="center">
                 <widget type="checkbox" fieldname="favorite"/>
