@@ -13,6 +13,18 @@ source). Copyright **Okodex** / autor **Alexis Serafín**. Repo:
 > del framework, backend-developer / extension-developer para modelos y extensiones, etc.) y que
 > revisen la implementación.
 
+## Dónde se desarrolla
+
+**Cliente prototipo: `Mesa_FS`.** Aquí se desarrolla este plugin. Las demás instalaciones lo
+**consumen** como submódulo fijado a un tag, y son fuente de mejoras y arreglos.
+
+Si lees esto desde otra instalación estás en un consumidor, y eso **no te prohíbe trabajar aquí**:
+a veces el fallo solo se reproduce en este entorno y arreglarlo desde el prototipo sería trabajar a
+ciegas. Lo que se pide es **preguntarlo antes**, no decidirlo en silencio — ni negarse.
+
+Se trabaje donde se trabaje, el arreglo vive en el repo del plugin y hay que **mover el pin** de
+esta instalación para que lo reciba: commitear no basta.
+
 ## Concepto: alias polimórfico
 
 Un **alias** es una fila de la tabla `alias` que apunta a **cualquier** entidad mediante dos
