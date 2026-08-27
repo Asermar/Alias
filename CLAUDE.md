@@ -95,67 +95,22 @@ devuelve `description` y si no `aliastype`).
   `createViews()`. **Regla de diseño**: los tipos de alias **no** se crean a mano desde
   administración; solo los crea el plugin que aporta operativa para ellos, vía `AliasType::ensure()`
   en su `update()`. Al desarrollar un satélite, nunca insertes tipos por UI.
+## Cómo lo integra un plugin satélite → está en el ÁRBOL
 
-## Cómo lo integra un plugin satélite (patrón, CLAVE)
+Ese conocimiento se movió a `arbol/FS/Alias/` del árbol de conocimiento, y no por orden: **quien más
+lo necesita es quien menos lo veía**. Un agente trabajando en `src/Plugins/AliasBusCanarias` carga su
+propio `CLAUDE.md` y el de la instalación, pero **no éste** — `Alias` es un hermano suyo, no un
+ancestro. Desde el árbol sí le llega, porque su nodo cuelga de `Alias`.
 
-Los satélites **no** definen modelos ni tablas nuevas: reutilizan `Alias`/`aliastypes` y solo
-aportan **tipos + validación + UI en la ficha destino**. Los tres existentes (AliasClientes,
-AliasLocalizaciones, AliasBusCanarias) siguen el **mismo molde**. Para añadir alias a una entidad X:
+Cuatro ficheros de hecho, que `okoconocimiento contexto` entrega solo:
 
-1. **`facturascripts.ini`**: `require = 'Alias'` (y el plugin dueño de X si X no es del core, p. ej.
-   AliasBusCanarias hace `require = 'Alias,BusCanarias'` con `min_version = 2026`).
+- **`patron-de-integracion-de-un-satelite.md`** — los 7 pasos y el reparto de responsabilidades.
+- **`cada-test-devuelve-true-para-los-tipos-ajenos.md`** — la regla de convivencia entre satélites.
+- **`no-hay-clave-ajena-el-cascade-lo-simula-el-satelite.md`** — por qué el borrado es del satélite.
+- **`codigos-de-tipo-ya-usados.md`** — qué códigos de `aliastype` están ocupados y por quién.
 
-2. **`Init::init()`** — registra por `loadExtension()`:
-   - Una **extensión de controlador** por cada ficha destino (`Extension\Controller\EditX`).
-   - Una **extensión de modelo destino** por cada X (`Extension\Model\X`) para el borrado en cascada.
-   - **Una** extensión `Extension\Model\Alias` (validación de `cod`).
-
-3. **`Init::update()`** — registra los tipos con `AliasType::ensure(CODIGO, 'Descripción', PLUGIN)`.
-   Los códigos de tipo se guardan como **constantes** en el `Init` del satélite
-   (`const ALIAS_TYPE_CLIENT = 'client'`, `PLUGIN_NAME = '...'`) y se reutilizan en las extensiones.
-
-4. **Extensión del controlador destino** (`Extension\Controller\EditX`) — dos closures:
-   - `createViews()` → `$this->addEditListView('EditAliasX', 'Alias', 'aliases', 'fa-solid fa-tags')`
-     (añade una pestaña de tipo *EditList* sobre el modelo `Alias`).
-   - `loadData($viewName, $view)` → si `$viewName === 'EditAliasX'`, construye un `Where` por
-     `aliastype = TIPO` y `cod = $this->views[$mvn]->model->id()` (id del registro actual) y llama a
-     `$view->loadData('', $where)`. **Ese mismo `Where` autorrellena `aliastype` y `cod`** en el
-     formulario de alta de la EditListView, así el usuario solo escribe el texto del alias.
-
-5. **Extensión del modelo destino** (`Extension\Model\X`) — closure `delete()` que **simula el
-   `ON DELETE CASCADE`** ausente en BD: recorre `Alias::all([aliastype=TIPO, cod=$this->id...])` y
-   borra cada alias. Sin esto quedarían alias huérfanos (no hay FK real que los limpie).
-
-6. **Extensión `Extension\Model\Alias`** — closure `test()` que **valida la FK simulada**: mapea
-   `aliastype → clase modelo` (`['client' => Cliente::class, ...]`); si el `aliastype` no está en su
-   mapa, devuelve `true` (no es asunto suyo); si está, hace `$model->load($this->cod)` y si falla
-   loguea `alias-cod-not-found` y devuelve `false`. **Convivencia de varios satélites**: cada plugin
-   registra su propia extensión `test()` sobre `Alias`; el core las ejecuta **todas** como pipes, y
-   como cada una devuelve `true` para los tipos que no conoce, no se pisan entre sí (patrón
-   deliberado: por eso el "no conozco este tipo → true" es obligatorio en cada `test()`).
-
-7. **`XMLView/EditAliasX.xml`** — vista de la EditListView: columnas `aliastype` y `cod` en
-   `display="none"` (las rellena el `Where` del paso 4), más `alias` y `favorite` visibles.
-
-### Resumen del reparto de responsabilidades
-
-| Pieza | Dónde vive | Qué hace |
-|-------|-----------|----------|
-| Tabla `alias`/`aliastypes`, modelo `Alias`/`AliasType`, favorito único | **Alias** (base) | Almacén y reglas genéricas |
-| `aliastype → modelo destino` | satélite (`Extension\Model\Alias::test`) | Valida `cod` (FK simulada) |
-| Borrado en cascada de alias | satélite (`Extension\Model\X::delete`) | Limpia huérfanos |
-| Pestaña de alias en la ficha | satélite (`Extension\Controller\EditX` + `XMLView`) | UI |
-| Alta de tipos | satélite (`Init::update` → `AliasType::ensure`) | Registra el tipo con su plugin |
-
-## Tipos registrados por los satélites (referencia)
-
-- **AliasClientes**: `client` → `Cliente`, `supplier` → `Proveedor`. Extiende `EditCliente`/
-  `EditProveedor`. Tiene además `Cron.php` (plantilla vacía) y traducciones a muchos idiomas.
-- **AliasLocalizaciones**: `country` → `Pais`, `province` → `Provincia`, `city` → `Ciudad`,
-  `poi` → `PuntoInteresCiudad`. Un solo `XMLView/EditAliasLocalizacion.xml` compartido por las
-  cuatro fichas.
-- **AliasBusCanarias**: `shippingcompany` → `NavieraServicioTour`, `shippingline` →
-  `LineaServicioTour` (catálogos de BusCanarias). `require = 'Alias,BusCanarias'`, `min_version 2026`.
+Aquí se queda lo que se lee **estando dentro**: el concepto, las columnas, el modelo, los
+controladores, los tests y las convenciones.
 
 ## Tests (Test/main/AliasTest.php)
 
