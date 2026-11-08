@@ -22,7 +22,6 @@ use FacturaScripts\Core\Template\ModelClass;
 use FacturaScripts\Core\Template\ModelTrait;
 use FacturaScripts\Core\Session;
 use FacturaScripts\Core\Tools;
-use FacturaScripts\Core\Where;
 use FacturaScripts\Dinamic\Model\AliasType;
 
 /**
@@ -34,6 +33,9 @@ use FacturaScripts\Dinamic\Model\AliasType;
 class Alias extends ModelClass
 {
     use ModelTrait;
+
+    /** longitud de la columna alias (Table/alias.xml) */
+    const ALIAS_MAX_LENGTH = 100;
 
     /** @var string */
     public $alias;
@@ -94,8 +96,8 @@ class Alias extends ModelClass
         }
 
         // solo puede haber un favorito por entidad (aliastype + cod)
-        if ($this->favorite) {
-            $this->clearOtherFavorites();
+        if ($this->favorite && false === $this->clearOtherFavorites()) {
+            return false;
         }
 
         return true;
@@ -111,24 +113,38 @@ class Alias extends ModelClass
         $this->alias = Tools::noHtml($this->alias);
         $this->aliastype = Tools::noHtml($this->aliastype);
         $this->cod = Tools::noHtml($this->cod);
+
+        // se mide después de escapar: cada ' pasa a &#39; y el texto crece
+        if (mb_strlen((string)$this->alias) > self::ALIAS_MAX_LENGTH) {
+            Tools::log()->warning('alias-too-long', ['%max%' => self::ALIAS_MAX_LENGTH]);
+            return false;
+        }
+
         $this->creationdate = $this->creationdate ?? Tools::dateTime();
         $this->nick = $this->nick ?? Session::user()->nick;
         return parent::test();
     }
 
-    // desmarca el resto de favoritos de la misma entidad
-    protected function clearOtherFavorites(): void
+    // desmarca el resto de favoritos de la misma entidad, en un único UPDATE:
+    // guardarlos uno a uno dejaba dos favoritos si alguno no se podía guardar
+    protected function clearOtherFavorites(): bool
     {
-        $where = [
-            Where::eq('aliastype', $this->aliastype),
-            Where::eq('cod', $this->cod),
-            Where::eq('favorite', true),
-            Where::column('id', $this->id, '!='),
-        ];
-        foreach (self::all($where) as $other) {
-            $other->favorite = false;
-            $other->save();
+        $done = self::table()
+            ->whereEq('aliastype', $this->aliastype)
+            ->whereEq('cod', $this->cod)
+            ->whereEq('favorite', true)
+            ->whereNotEq('id', $this->id)
+            ->update(['favorite' => false]);
+        if (false === $done) {
+            Tools::log()->error('alias-favorite-clear-error', [
+                '%aliastype%' => $this->aliastype,
+                '%cod%' => $this->cod,
+            ]);
+            return false;
         }
+
+        $this->clearCache();
+        return true;
     }
 
     protected function saveInsert(): bool
