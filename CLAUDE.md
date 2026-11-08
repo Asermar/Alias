@@ -2,7 +2,7 @@
 
 Plugin **base** de **FacturaScripts** que ofrece **alias polimórficos reutilizables**: nombres
 alternativos (apodos, denominaciones comerciales, abreviaturas…) asociados a cualquier entidad del
-programa. `version 1.00`, `min_version 2025` (requiere `FacturaScripts\Core\Template\ModelClass`,
+programa. `version 1.01`, `min_version 2025` (requiere `FacturaScripts\Core\Template\ModelClass`,
 introducida en el core v2025), `min_php 8`. **No tiene `require`**: es el plugin del que dependen
 los satélites **AliasClientes** (clientes/proveedores), **AliasLocalizaciones** (países/provincias/
 ciudades/PDI) y **AliasBusCanarias** (navieras/líneas de BusCanarias). Licencia **GPL v3** (open
@@ -62,9 +62,17 @@ clase; solo conoce `(aliastype, cod, alias)`.
 - `id` serial PK; `aliastype` varchar(30) **UNIQUE** (el código del tipo, lo que referencia
   `alias.aliastype`); `description` varchar(100); `plugin` varchar(50) (plugin responsable);
   auditoría igual que `alias`.
-- **`AliasType::ensure($code, $description, $plugin): self`** es el punto de entrada para los
-  satélites. Idempotente: si el tipo existe y no tiene `plugin`, se lo rellena; si no existe, lo
-  crea. Pensado para llamarse desde el `update()` de cualquier plugin que amplíe Alias.
+- **`AliasType::ensure($code, $description, $plugin): ?self`** es el punto de entrada para los
+  satélites, y **el único camino de escritura del catálogo**. Idempotente: si el tipo existe y no
+  tiene `plugin`, se lo rellena; si no existe, lo crea. Pensado para llamarse desde el `update()` de
+  cualquier plugin que amplíe Alias. Si no puede guardar devuelve **`null`** y deja un error
+  (`alias-type-ensure-error`) — sin excepción, porque puede correr dentro de una migración, que no la
+  admite—; si el tipo ya existe con **otro** `plugin`, lo devuelve y avisa (`alias-type-other-plugin`).
+- **El modelo rechaza lo demás**: `saveInsert()`/`saveUpdate()` fuera de `ensure()` devuelven false
+  con aviso (`alias-type-only-by-plugin`), y `delete()` siempre (`alias-type-cannot-delete`). Así queda
+  cerrado también para la API REST del core, que escribe a través del modelo. Ningún flujo de
+  producción borra tipos (los `uninstall()` de los satélites están vacíos); los tests limpian sus
+  tipos de prueba por SQL directo (`AliasType::table()->whereEq(...)->delete()`).
 
 ## Modelo `Alias` (Model/Alias.php)
 
@@ -74,10 +82,14 @@ clase; solo conoce `(aliastype, cod, alias)`.
   `aliastypes` exista primero (la FK `alias.aliastype → aliastypes` lo exige).
 - **Un único favorito por entidad**: `favorite` marca el alias "principal" de una entidad. La
   unicidad se garantiza en **`save()`** (no en `test()`): tras persistir, si `favorite` está, llama
-  a `clearOtherFavorites()`, que desmarca los demás alias con el mismo `(aliastype, cod)`.
+  a `clearOtherFavorites()`, que desmarca los demás alias con el mismo `(aliastype, cod)` en **un
+  único UPDATE** (si falla, error y `save()` devuelve false). Antes guardaba uno a uno e ignoraba el
+  resultado, así que un alias que no se pudiera guardar seguía siendo favorito: dos en silencio.
   **Importante**: el ámbito del favorito es la **entidad** `(aliastype + cod)`, mientras que el
   UNIQUE de BD es por **tipo** `(aliastype + alias)` — son dos ámbitos distintos, no confundirlos.
-- `test()` sanea con `Tools::noHtml()` y sella `creationdate`/`nick`; `saveInsert`/`saveUpdate`
+- `test()` sanea con `Tools::noHtml()` y **mide la longitud después** (`ALIAS_MAX_LENGTH = 100`, la
+  de la columna): cada `'` pasa a `&#39;`, así que 98 caracteres tecleados con dos apóstrofos son 106
+  guardados; por encima rechaza con `alias-too-long`. También sella `creationdate`/`nick`; `saveInsert`/`saveUpdate`
   fijan `lastnick`/`lastupdate`. `clear()` inicializa `creationdate`, `favorite=false` y `nick` con
   el usuario de sesión.
 - `primaryColumn()` = `id`; `primaryDescription()` = `alias`; `tableName()` = `alias`.
@@ -89,12 +101,21 @@ devuelve `description` y si no `aliastype`).
 
 - **`ListAlias`** (`ListController`, menú `admin`): dos pestañas — `ListAlias` (con filtro por
   `aliastype` cuyas etiquetas se traducen con `Tools::trans`, y checkbox `favorite`) y
-  `ListAliasType` (con filtro por `plugin`). **La pestaña de tipos tiene `btnNew` desactivado**.
+  `ListAliasType` (con filtro por `plugin`). **La pestaña de tipos es sólo una lista**: sin `btnNew`,
+  sin `btnDelete`, sin `checkBoxes` (el `ListController` borra con las casillas de la pestaña activa) y
+  sin `clickable` (no hay ficha a la que ir).
 - **`EditAlias`** (`EditController`): edición de un alias suelto.
-- **`EditAliasType`** (`EditController`): edición de un tipo, con **`btnNew` desactivado** en
-  `createViews()`. **Regla de diseño**: los tipos de alias **no** se crean a mano desde
-  administración; solo los crea el plugin que aporta operativa para ellos, vía `AliasType::ensure()`
-  en su `update()`. Al desarrollar un satélite, nunca insertes tipos por UI.
+- **`EditAliasType` se retiró en el hotfix de la auditoría de base.** **Regla de diseño**: los tipos de
+  alias no se crean, cambian ni borran a mano; los registra el plugin que aporta operativa para ellos,
+  vía `AliasType::ensure()` en su `update()`. Antes la ficha sólo escondía el botón «Nuevo»
+  (`btnNew`), y `PanelController::insertAction` no lo mira, así que se podían crear por POST; y como
+  `alias.aliastype` es `ON UPDATE CASCADE`, renombrar un tipo descolgaba sus alias de los satélites.
+  Se retiró en vez de dejarla rechazando acciones porque el core limpia solo lo que deja un
+  controlador borrado: al desplegar con `initControllers` (actualizar por zip un plugin activo, o
+  activarlo) `PluginsDeploy::removeOldPages()` borra su fila de `pages`, la ruta sale de
+  `routes.json` y la URL da 404. Quedan filas inocuas en `roles_access`/`pages_options`/`pages_filters`
+  con ese nombre (no tienen FK a `pages`).
+
 ## Cómo lo integra un plugin satélite → está en el ÁRBOL
 
 Ese conocimiento se movió a `arbol/FS/Alias/` del árbol de conocimiento, y no por orden: **quien más
@@ -114,11 +135,15 @@ controladores, los tests y las convenciones.
 
 ## Tests (Test/main/AliasTest.php)
 
-`install-plugins.txt` = solo `Alias`. Cubre: alta/baja de `AliasType` y `Alias`; `favorite=false`
-por defecto; **un único favorito por entidad** (`testOnlyOneFavoritePerEntity`); **UNIQUE por tipo**
-(`testUniqueAliasPerType`, limpia el MiniLog tras la violación esperada); y que `EditAliasType` /
-`ListAliasType` **no** permiten crear (`btnNew=false`) vía Reflection sobre `createViews()`. Usa un
-tipo de pruebas `unittest` creado en `setUp` y borrado en `tearDownAfterClass`.
+`install-plugins.txt` = solo `Alias`. Cubre: que los tipos **no** se crean, cambian ni borran a mano
+y que `ensure()` los crea, avisa si el tipo es de otro plugin y devuelve `null` si no puede guardar
+(con una extensión de prueba `saveBefore`); que la clase `EditAliasType` ya no existe y que la pestaña
+`ListAliasType` es de sólo lectura (Reflection sobre `createViews()`); alta/baja de `Alias`,
+`favorite=false` por defecto, **un único favorito por entidad** también cuando el otro favorito no se
+puede guardar; **UNIQUE por tipo**; y la longitud medida tras escapar. Las aserciones sobre el log van
+por la clave sin traducir (`MiniLog::read()[...]['original']`). Los tipos de prueba (`unittest*`) se
+crean con `ensure()` y se limpian por SQL; `setUp` borra antes los alias de prueba que hubiera dejado
+una pasada muerta a medias.
 
 ## Convenciones y gotchas
 
@@ -134,8 +159,8 @@ tipo de pruebas `unittest` creado en `setUp` y borrado en `tearDownAfterClass`.
   huérfanos; si olvidas la extensión `test()`, se admitirán `cod` inexistentes.
 - **Favorito (por entidad) vs. UNIQUE (por tipo)**: dos ámbitos distintos, error fácil al razonar
   sobre duplicados.
-- **Tipos solo por código**: no crear `aliastypes` desde la UI; siempre `AliasType::ensure()` en el
-  `update()` del plugin responsable.
+- **Tipos solo por código**: `AliasType::ensure()` en el `update()` del plugin responsable; el modelo
+  rechaza cualquier otra alta, cambio o borrado.
 - **⚠ Cambiar la longitud de `alias` trunca en los dos sentidos.** `DbUpdater` **sí** sincroniza el
   tipo de columna (`Core/DbUpdater.php:297-301` → `sqlAlterModifyColumn`, motivo
   `change-column-type`), y lo hace de forma **bidireccional**: desplegar una rama cuyo
