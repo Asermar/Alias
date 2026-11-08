@@ -2,7 +2,7 @@
 
 Plugin **base** de **FacturaScripts** que ofrece **alias polimórficos reutilizables**: nombres
 alternativos (apodos, denominaciones comerciales, abreviaturas…) asociados a cualquier entidad del
-programa. `version 1.01`, `min_version 2025` (requiere `FacturaScripts\Core\Template\ModelClass`,
+programa. `version 1.02`, `min_version 2025` (requiere `FacturaScripts\Core\Template\ModelClass`,
 introducida en el core v2025), `min_php 8`. **No tiene `require`**: es el plugin del que dependen
 los satélites **AliasClientes** (clientes/proveedores), **AliasLocalizaciones** (países/provincias/
 ciudades/PDI) y **AliasBusCanarias** (navieras/líneas de BusCanarias). Licencia **GPL v3** (open

@@ -19,15 +19,16 @@ lo registra.
 ## Funcionalidades
 
 - **Catálogo de tipos de alias** (`aliastypes`): cada tipo declara a qué entidad se refiere y qué
-  plugin lo mantiene. Con integridad real en base de datos y borrado restringido, así que no se puede
-  eliminar un tipo que aún tenga alias.
+  plugin lo mantiene, y **lo escribe sólo ese plugin**, por `AliasType::ensure()`. Desde la interfaz y
+  desde la API es de sólo lectura. Con integridad real en base de datos y borrado restringido, así que
+  no se puede eliminar un tipo que aún tenga alias.
 - **Alias con texto de hasta 100 caracteres**, marcables como **favorito**, y con **auditoría** de alta
   y última modificación (fecha y usuario).
 - **Un texto no se repite dentro del mismo tipo**: el índice único es por `(tipo, alias)`, de modo que
   dos entidades del mismo tipo no pueden compartir denominación. Es lo que hace que un alias sirva para
   **buscar** sin ambigüedad.
-- **Listado y fichas propias** (`ListAlias`, `EditAlias`, `EditAliasType`) para gestionar tipos y alias
-  sin depender de ningún satélite.
+- **Listado y ficha propios** (`ListAlias`, `EditAlias`) para consultar los tipos y gestionar los
+  alias sin depender de ningún satélite.
 - **Sin dependencias**: es el plugin del que dependen los demás, no depende de ninguno.
 
 ## La familia
@@ -59,6 +60,16 @@ Cambios destacados por versión (la versión es la de `facturascripts.ini`, úni
 
 ### 1.0x — Alias polimórficos, estables
 
+- **1.02** — **El catálogo de tipos se cierra al código.** Un tipo dice a qué entidad apuntan sus
+  alias y qué plugin lo mantiene, así que sólo ese plugin puede registrarlo: `AliasType::ensure()`
+  pasa a ser el único camino de escritura, y el modelo rechaza cualquier otra alta, cambio o borrado
+  —también por la API—. La pestaña de tipos queda como lista de sólo lectura y la ficha de edición se
+  retira. Antes, esconder el botón «Nuevo» no impedía crearlos, y renombrar un tipo dejaba sus alias
+  fuera de los plugins que los usan. Además: registrar un tipo **avisa** si no se pudo guardar o si ya
+  pertenece a otro plugin, en vez de darlo por hecho en silencio; marcar un alias como **favorito**
+  desmarca los demás en **una sola operación**, de modo que ya no pueden quedar dos favoritos sin que
+  nadie lo diga; y un alias que, **una vez escapado**, no cabe en sus 100 caracteres (cada apóstrofo
+  ocupa cinco) se rechaza con un mensaje, en vez de dar un error de base de datos o cortarse a medias.
 - **1.01** — El texto del alias pasa de 50 a **100 caracteres**. Cincuenta se quedaban cortos en uso
   real, y recortar el texto no era una salida: al acortarlo puede chocar con otro alias del mismo tipo
   y saltar el índice único. Se añade un test que comprueba que un alias de 100 caracteres no se recorta.
