@@ -25,7 +25,8 @@ use FacturaScripts\Core\Tools;
 use FacturaScripts\Core\Where;
 
 /**
- * Catálogo de tipos de alias.
+ * Catálogo de tipos de alias. Lo llena cada plugin con ensure() al instalarse: a mano
+ * (interfaz, API REST, código) no se crean, no se cambian ni se borran.
  *
  * @author Alexis Serafín <alexis@okodex.com>
  */
@@ -57,6 +58,9 @@ class AliasType extends ModelClass
     /** @var string */
     public $plugin;
 
+    /** @var bool sólo ensure() la levanta, alrededor de su save() */
+    private static $ensuring = false;
+
     public function clear(): void
     {
         parent::clear();
@@ -68,14 +72,25 @@ class AliasType extends ModelClass
      * Asegura que un tipo de alias exista en el catálogo, registrando el plugin
      * responsable de crearlo. Si ya existe pero no tiene plugin asignado, lo rellena.
      * Pensado para llamarse desde el update() de cualquier plugin que amplíe Alias.
+     *
+     * Devuelve null si no pudo guardar, con un error en el log. No lanza excepción:
+     * puede correr dentro de una migración, que no la admite.
      */
-    public static function ensure(string $code, string $description, string $plugin): self
+    public static function ensure(string $code, string $description, string $plugin): ?self
     {
         $type = new self();
         if ($type->loadWhere([Where::eq('aliastype', $code)])) {
             if (empty($type->plugin)) {
                 $type->plugin = $plugin;
-                $type->save();
+                return $type->saveFromEnsure() ? $type : null;
+            }
+
+            if ($type->plugin !== $plugin) {
+                Tools::log()->warning('alias-type-other-plugin', [
+                    '%aliastype%' => $code,
+                    '%plugin%' => $type->plugin,
+                    '%other%' => $plugin,
+                ]);
             }
             return $type;
         }
@@ -83,8 +98,13 @@ class AliasType extends ModelClass
         $type->aliastype = $code;
         $type->description = $description;
         $type->plugin = $plugin;
-        $type->save();
-        return $type;
+        return $type->saveFromEnsure() ? $type : null;
+    }
+
+    public function delete(): bool
+    {
+        Tools::log()->warning('alias-type-cannot-delete', ['%aliastype%' => $this->aliastype]);
+        return false;
     }
 
     public static function primaryColumn(): string
@@ -114,6 +134,11 @@ class AliasType extends ModelClass
 
     protected function saveInsert(): bool
     {
+        if (false === self::$ensuring) {
+            Tools::log()->warning('alias-type-only-by-plugin', ['%aliastype%' => $this->aliastype]);
+            return false;
+        }
+
         $this->lastnick = Session::get('user')->nick ?? null;
         $this->lastupdate = Tools::dateTime();
         return parent::saveInsert();
@@ -121,8 +146,28 @@ class AliasType extends ModelClass
 
     protected function saveUpdate(): bool
     {
+        if (false === self::$ensuring) {
+            Tools::log()->warning('alias-type-only-by-plugin', ['%aliastype%' => $this->aliastype]);
+            return false;
+        }
+
         $this->lastnick = Session::get('user')->nick ?? null;
         $this->lastupdate = Tools::dateTime();
         return parent::saveUpdate();
+    }
+
+    private function saveFromEnsure(): bool
+    {
+        self::$ensuring = true;
+        try {
+            $saved = $this->save();
+        } finally {
+            self::$ensuring = false;
+        }
+
+        if (false === $saved) {
+            Tools::log()->error('alias-type-ensure-error', ['%aliastype%' => $this->aliastype]);
+        }
+        return $saved;
     }
 }

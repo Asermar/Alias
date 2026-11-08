@@ -63,6 +63,8 @@ class ListAlias extends ListController
             ->addFilterCheckbox('favorite', 'favorite', 'favorite');
     }
 
+    // los tipos los registra cada plugin con AliasType::ensure(): aquí sólo se listan,
+    // sin crear, borrar ni abrir una ficha (EditAliasType se retiró)
     protected function createViewsAliasType(string $viewName = 'ListAliasType'): void
     {
         $this->addView($viewName, 'AliasType', 'alias-types', 'fa-solid fa-tag')
@@ -70,7 +72,10 @@ class ListAlias extends ListController
             ->addOrderBy(['description'], 'description')
             ->addOrderBy(['plugin'], 'plugin')
             ->addSearchFields(['aliastype', 'description', 'plugin'])
-            ->setSettings('btnNew', false);
+            ->setSettings('btnNew', false)
+            ->setSettings('btnDelete', false)
+            ->setSettings('checkBoxes', false)
+            ->setSettings('clickable', false);
 
         // filtro por plugin responsable
         $plugins = $this->codeModel->all('aliastypes', 'plugin', 'plugin');
