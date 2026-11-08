@@ -2,7 +2,7 @@
 
 Plugin **base** de **FacturaScripts** que ofrece **alias polimórficos reutilizables**: nombres
 alternativos (apodos, denominaciones comerciales, abreviaturas…) asociados a cualquier entidad del
-programa. `version 1.02`, `min_version 2025` (requiere `FacturaScripts\Core\Template\ModelClass`,
+programa. `version 1.03`, `min_version 2025` (requiere `FacturaScripts\Core\Template\ModelClass`,
 introducida en el core v2025), `min_php 8`. **No tiene `require`**: es el plugin del que dependen
 los satélites **AliasClientes** (clientes/proveedores), **AliasLocalizaciones** (países/provincias/
 ciudades/PDI) y **AliasBusCanarias** (navieras/líneas de BusCanarias). Licencia **GPL v3** (open
@@ -116,6 +116,31 @@ devuelve `description` y si no `aliastype`).
   `routes.json` y la URL da 404. Quedan filas inocuas en `roles_access`/`pages_options`/`pages_filters`
   con ese nombre (no tienen FK a `pages`).
 
+## Guarda de la pestaña de alias de un satélite (`Lib/AliasTabGuard`)
+
+La pestaña que cada satélite añade a su ficha (EditListView sobre `Alias`) filtra en `loadData()` los
+alias de la ficha, pero el formulario manda `id`, `aliastype` y `cod`, y las acciones del core cargan
+el registro por su código. Sin guarda, con permiso en la ficha se podía crear, editar o borrar
+**cualquier** alias del sistema. `AliasTabGuard::protect($request, $activeTab, $tabName, $aliasType,
+$mainModel)` lo cierra para las tres vías:
+
+- **alta**: el `aliastype` y el `cod` enviados tienen que ser los de la ficha (se **rechaza**, no se
+  corrige: la interfaz legítima ya los manda, autorrellenados por el `Where` de `loadData()`);
+- **edición**: además, el alias cargado por `code` tiene que ser de la ficha, y un `id` enviado tiene
+  que coincidir con `code`;
+- **borrado**: cada alias de `codes[]` (o el `code` único, como `BaseController::deleteAction()`).
+
+Cada satélite la llama en su extensión **`createViews()`**, después de `addEditListView()`. Es lo
+último que corre antes de las acciones: el gancho `execPreviousAction` de una extensión corre
+**después** de que el core haya escrito (`PanelController::privateCore`). La ficha se carga con la
+misma expresión que `EditController::loadData()`, porque en ese momento aún no está cargada.
+
+Si algo no cuadra, avisa (`alias-tab-out-of-scope`) y **anula la acción vaciando `action` en el
+cuerpo y en la query**, que es de donde la lee el core (`inputOrQuery`). No toca
+`allowUpdate`/`allowDelete`: ese objeto es el que el core guarda en la sesión, y cambiaría también lo
+que pinta la página. El token de formulario no llega a consumirse (sólo lo validan las acciones) y la
+página se pinta con uno nuevo, así que el usuario sigue trabajando con normalidad.
+
 ## Cómo lo integra un plugin satélite → está en el ÁRBOL
 
 Ese conocimiento se movió a `arbol/FS/Alias/` del árbol de conocimiento, y no por orden: **quien más
@@ -175,7 +200,7 @@ una pasada muerta a medias.
 
 ## Otras carpetas
 
-`Model/` (`Alias`, `AliasType`), `Table/` (XML de tablas), `Controller/` + `XMLView/` (Edit/List de
+`Model/` (`Alias`, `AliasType`), `Lib/` (`AliasTabGuard`), `Table/` (XML de tablas), `Controller/` + `XMLView/` (Edit/List de
 ambas entidades), `Translation/` (es_ES + en_EN), `Test/main/`, `Init.php` (vacío: el plugin base no
 registra extensiones ni tipos; eso lo hacen los satélites).
 

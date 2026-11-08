@@ -29,6 +29,9 @@ lo registra.
   **buscar** sin ambigüedad.
 - **Listado y ficha propios** (`ListAlias`, `EditAlias`) para consultar los tipos y gestionar los
   alias sin depender de ningún satélite.
+- **Guarda de la pestaña de alias** (`Lib/AliasTabGuard`): la pestaña que un satélite añade a una
+  ficha sólo puede crear, editar o borrar los alias **de esa ficha**. Lo que llegue con otro tipo u
+  otro código se anula con un aviso, sin escribir nada.
 - **Sin dependencias**: es el plugin del que dependen los demás, no depende de ninguno.
 
 ## La familia
@@ -44,10 +47,11 @@ programa registrando sus tipos y validando que el código apunte a un registro q
 
 ## Integrarlo desde otro plugin
 
-Un satélite hace tres cosas: **registra** sus tipos en el catálogo al instalarse, **extiende** las
-fichas de sus entidades con una pestaña de alias, y **valida en tiempo de ejecución** que el código del
-alias corresponda a un registro real (la relación con la entidad destino no la conoce la base de datos,
-así que la comprueba el plugin) además de borrar sus alias en cascada al eliminar la entidad.
+Un satélite hace cuatro cosas: **registra** sus tipos en el catálogo al instalarse, **extiende** las
+fichas de sus entidades con una pestaña de alias, **acota esa pestaña** con `AliasTabGuard::protect()`
+para que sólo alcance los alias de la ficha abierta, y **valida en tiempo de ejecución** que el código
+del alias corresponda a un registro real (la relación con la entidad destino no la conoce la base de
+datos, así que la comprueba el plugin) además de borrar sus alias en cascada al eliminar la entidad.
 
 ## Requisitos
 
@@ -60,6 +64,13 @@ Cambios destacados por versión (la versión es la de `facturascripts.ini`, úni
 
 ### 1.0x — Alias polimórficos, estables
 
+- **1.03** — **La pestaña de alias de un satélite deja de alcanzar los alias de otras fichas.** Esa
+  pestaña filtra lo que **muestra**, pero el formulario manda el tipo y el código, y las acciones del
+  núcleo cargan el registro por su código: hasta ahora, con permiso sólo sobre una ficha —un cliente,
+  una naviera…— se podía crear, editar o borrar **cualquier** alias del sistema, de una en una, en
+  lote o con la acción por enlace. La nueva guarda `Lib/AliasTabGuard` cierra las tres vías: lo que
+  llegue con otro tipo, otro código u otro alias se **anula con un aviso** y no escribe nada. La usan
+  los cuatro satélites, que por eso necesitan esta versión: ver su aviso de despliegue.
 - **1.02** — **El catálogo de tipos se cierra al código.** Un tipo dice a qué entidad apuntan sus
   alias y qué plugin lo mantiene, así que sólo ese plugin puede registrarlo: `AliasType::ensure()`
   pasa a ser el único camino de escritura, y el modelo rechaza cualquier otra alta, cambio o borrado

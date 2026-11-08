@@ -1,6 +1,7 @@
 {
     "alias": "Alias",
     "alias-favorite-clear-error": "No se pudieron desmarcar los otros favoritos de %aliastype% %cod%.",
+    "alias-tab-out-of-scope": "Esta pestaña sólo puede crear, editar o borrar los alias de la ficha abierta. No se ha guardado nada.",
     "alias-too-long": "El alias no puede pasar de %max% caracteres. Ojo: los apóstrofos y las comillas ocupan más de uno al guardarse.",
     "alias-type": "Tipo de alias",
     "alias-type-cannot-delete": "Los tipos de alias no se pueden borrar: los registra su plugin al instalarse (%aliastype%).",
